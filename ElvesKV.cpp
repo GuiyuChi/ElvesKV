@@ -6,6 +6,7 @@
 
 using namespace std;
 
+// leveldb 读操作封装
 static bool leveldbGet(leveldb::DB * db, string &key, string &value){
     leveldb::Status s = db->Get(leveldb::ReadOptions(),key,&value);
     assert(s.ok());
@@ -15,21 +16,27 @@ static bool leveldbGet(leveldb::DB * db, string &key, string &value){
         return true;
     }
 }
+
+// leveldb 写操作封装
 static void leveldbSet(leveldb::DB * db, string key, string value){
     leveldb::Status s = db->Put(leveldb::WriteOptions(),key,value);
     assert(s.ok());
 }
-int main(){
+
+// leveldb 建库操作封装
+static leveldb::DB * open_leveldb(const string &dirname){
     leveldb::DB * db;
     leveldb::Options options;
     options.create_if_missing = true;
+    leveldb::Status s = leveldb::DB::Open(options,dirname,&db);
+    assert(s.ok());
+    return db;
+}
 
-    // 创建的数据库在 /tmp/testdb
-    leveldb::Status status = leveldb::DB::Open(options, "/tmp/testdb", &db);
-    assert(status.ok());
-
+int main(){
+    leveldb::DB * db = open_leveldb("/tmp/testdb");
     string key = "A";
-    string value = "hello world elveskv";
+    string value = "hello world elveskv 1";
     string get_value;
 
     leveldbSet(db,key,value);
