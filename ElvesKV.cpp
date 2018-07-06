@@ -11,14 +11,6 @@ typedef struct WiscKey{
     leveldb::DB * leveldb;
     FILE * logfile;
 }WK;
-
-// wisckey 写操作封装
-static void wisckeySet(WK* wk, string &key, string &value){
-    long offset = ftell(wk->logfile);
-    long size = sizeof(value);
-
-}
-
 // leveldb 读操作封装
 static bool leveldbGet(leveldb::DB * db, string &key, string &value){
     leveldb::Status s = db->Get(leveldb::ReadOptions(),key,&value);
@@ -57,6 +49,55 @@ static void testingLevelDBFunction(leveldb::DB * db, string key, string value){
     leveldbDel(db,key);
     assert(leveldbGet(db,key,get_value)==0);
 }
+// wisckey 读操作封装
+static bool wisckeyGet(WK * wk, string &key, string &value){
+    string offsetinfo;
+    const bool found = leveldbGet(wk->leveldb,key,offsetinfo);
+    // cout<<offsetinfo<<endl;
+    if(!found){
+        cout << "Record:Not Found" << endl;
+    }
+    string value_offset;
+    string value_length;
+    string s = offsetinfo;
+    string delimiter = "&&";
+    size_t pos = 0;
+    string token;
+    while((pos = s.find(delimiter)) != string::npos){
+        token = s.substr(0,pos);
+        value_offset = token;
+        s.erase(0, pos + delimiter.length());
+    }
+    value_length = s;
+    long offset = stol(value_offset);
+    long length = stol(value_length);
+    // cout<<offset<<endl;
+    // cout<<length<<endl;
+    fseek(wk->logfile,offset,SEEK_SET);
+    fread(&value,length,1,wk->logfile);
+    return true;
+}
+// wisckey 写操作封装
+static void wisckeySet(WK* wk, string &key, string &value){
+    long offset = ftell(wk->logfile);
+    //修改了源码
+    long size = value.length();
+    string vlog_offset = to_string(offset);
+    string vlog_size = to_string(size);
+    // cout<<vlog_offset<<endl;
+    // cout<<vlog_size<<endl;
+    string vlog_value = vlog_offset+"&&"+vlog_size;
+    fwrite(&value,sizeof(value),1,wk->logfile);
+    leveldbSet(wk->leveldb,key,vlog_value);
+}
+// WiscKey 创建数据库
+static WK * open_wisckey(const string& dirname){
+    WK * wk = new WK;
+    wk->leveldb = open_leveldb(dirname);
+    wk->dir = dirname;
+    wk->logfile = fopen("logfile","wb+");
+    return wk;
+}
 
 // 生成字符串的长度
 static size_t randValueSize(){
@@ -93,10 +134,21 @@ int main(){
     // levelDbTest();
     // clock_t dt = clock() - t0;
     // cout << "time elapsed: " << dt * 1.0e-6 << " seconds" << endl;
-    string a = "123456";
-    string b = "123";
-    stringstream test1;
-    test1<<b<<"&&"<<a;
-    cout<<test1.str();
+    WK * wk = open_wisckey("/tmp/wisckey_test_dir");
+    if (wk == NULL) {
+    		cerr << "Open WiscKey failed!" << endl;
+    		exit(1);
+  	}
+    string key1 = "adf";
+    string value1 = "hello wisc";
+    string key2 = "abcd";
+    string value2 = "wodsfdsfadfasfrfrafgfdfawereffeawfdsfef";
+    string key3 = "adfafsf";
+    string value3 = "dfsasdfgasadgewrgfdvrgfbgd";
+    wisckeySet(wk,key1,value1);
+    wisckeySet(wk,key2,value2);
+    wisckeySet(wk,key3,value3);
+    wisckeyGet(wk,key3,value1);
+    cout<<value1<<endl;
     return 0;
 }
