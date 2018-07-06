@@ -50,45 +50,63 @@ static void testingLevelDBFunction(leveldb::DB * db, string key, string value){
     assert(leveldbGet(db,key,get_value)==0);
 }
 // wisckey 读操作封装
-static bool wisckeyGet(WK * wk, string &key, string &value){
+static bool wisckeyGet(WK * wk, string &key, string &value)
+{
+    // cout << "\n\t\tGet Function\n\n";
+	// cout << "Key Received: " << key << endl;
+    // cout << "Value Received: " << value << endl;
+
     string offsetinfo;
-    const bool found = leveldbGet(wk->leveldb,key,offsetinfo);
-    // cout<<offsetinfo<<endl;
-    if(!found){
-        cout << "Record:Not Found" << endl;
+    const bool found = leveldbGet(wk->leveldb, key, offsetinfo);
+    if (found) {
+        cout << "Offset and Length: " << offsetinfo << endl;
     }
-    string value_offset;
-    string value_length;
-    string s = offsetinfo;
-    string delimiter = "&&";
-    size_t pos = 0;
-    string token;
-    while((pos = s.find(delimiter)) != string::npos){
-        token = s.substr(0,pos);
+    else {
+        cout << "Record:Not Found" << endl;
+        return false;
+    }
+	string value_offset;
+	string value_length;
+	string s = offsetinfo;
+	string delimiter = "&&";
+	size_t pos = 0;
+	string token;
+	while ((pos = s.find(delimiter)) != std::string::npos) {
+        token = s.substr(0, pos);
         value_offset = token;
         s.erase(0, pos + delimiter.length());
-    }
-    value_length = s;
-    long offset = stol(value_offset);
-    long length = stol(value_length);
-    // cout<<offset<<endl;
-    // cout<<length<<endl;
-    fseek(wk->logfile,offset,SEEK_SET);
-    fread(&value,length,1,wk->logfile);
-    return true;
+	}
+	value_length = s;
+
+	// cout << "Value Offset: " << value_offset << endl;
+	// cout << "Value Length: " << value_length << endl;
+
+  	std::string::size_type sz;
+  	long offset = stol (value_offset,&sz);
+	long length = stol (value_length,&sz);
+
+	//cout << offset << length << endl;
+	string value_record;
+	//cout << ftell(wk->logread) << endl;
+	fseek(wk->logfile,offset,SEEK_SET);
+	//cout << ftell(wk->logfile) << endl;
+	//rewind(wk->logfile);
+	//cout << ftell(wk->logfile) << endl;
+	fread(&value_record,length,1,wk->logfile);
+	//rewind(wk->logfile);
+	cout << "LogFile Value: " << value_record << endl;
+	return true;
 }
 // wisckey 写操作封装
-static void wisckeySet(WK* wk, string &key, string &value){
-    long offset = ftell(wk->logfile);
-    //修改了源码
-    long size = sizeof(value);
-    string vlog_offset = to_string(offset);
-    string vlog_size = to_string(size);
-    cout<<vlog_offset<<endl;
-    cout<<vlog_size<<endl;
-    string vlog_value = vlog_offset+"&&"+vlog_size;
-    fwrite(&value,sizeof(value),1,wk->logfile);
-    leveldbSet(wk->leveldb,key,vlog_value);
+static void wisckeySet(WK * wk, string &key, string &value)
+{
+	long offset = ftell (wk->logfile);
+	long size = sizeof(value);
+	string vlog_offset = to_string(offset);
+	string vlog_size = to_string(size);
+	string vlog_value = vlog_offset + "&&" + vlog_size;
+	fwrite (&value, sizeof(value),1,wk->logfile);
+	leveldbSet(wk->leveldb,key,vlog_value);
 }
 // WiscKey 创建数据库
 static WK * open_wisckey(const string& dirname){
@@ -98,7 +116,21 @@ static WK * open_wisckey(const string& dirname){
     wk->logfile = fopen("logfile","wb+");
     return wk;
 }
-
+// WiscKey 关闭数据库
+static void close_wisckey(WK * wk){
+    fclose(wk->logfile);
+  	delete wk->leveldb;
+  	delete wk;
+}
+// WiscKey 测试程序 写入 读取 删除 确认删除
+static void testingWiscKeyFunction(WK * wk, string key, string value){
+    string get_value;
+    wisckeySet(wk,key,value);
+    wisckeyGet(wk,key,get_value);
+    // cout<<get_value<<endl;
+    // leveldbDel(db,key);
+    // assert(leveldbGet(db,key,get_value)==0);
+}
 // 生成字符串的长度
 static size_t randValueSize(){
     return (size_t)rand()/100000 + 5000;
@@ -123,6 +155,19 @@ static void levelDbTest(){
         testingLevelDBFunction(db,key,value);
     }
 }
+static void wiscKeyTest(){
+     WK * wk = open_wisckey("/tmp/wisckey_test_dir");
+     if (wk == NULL) {
+           cerr << "Open WiscKey failed!" << endl;
+           exit(1);
+       }
+    // string value = "hello world elveskv";
+    for(int i=0;i<1000;i++){
+        string key = to_string((size_t)rand());
+        string value = randString();
+        testingWiscKeyFunction(wk,key,value);
+    }
+}
 int main(){
     // leveldb::DB * db = open_leveldb("/tmp/testdb");
     // string key = "A";
@@ -139,23 +184,11 @@ int main(){
     		cerr << "Open WiscKey failed!" << endl;
     		exit(1);
   	}
-    string key1 = "adf";
-    string value1 = randString();
-    string key2 = "abcd";
-    string value2 = randString();
-    string key3 = "adfafsf";
-    string value3 = randString();
-    wisckeySet(wk,key1,value1);
-    wisckeySet(wk,key2,value2);
-    wisckeySet(wk,key3,value3);
-    string a1;
-    string a2;
-    string a3;
-    wisckeyGet(wk,key1,a1);
-    wisckeyGet(wk,key2,a2);
-    wisckeyGet(wk,key3,a3);
-    // cout<<a1<<endl;
-    // cout<<a2<<endl;
-    cout<<a3<<endl;
+    string key ="a";
+    string value = randString();
+    testingWiscKeyFunction(wk,key,value);
+    // clock_t t1 = clock();
+    // wiscKeyTest();
+    // cout << "time elapsed: " << (clock() - t1) * 1.0e-6 << " seconds" << endl;
     return 0;
 }
