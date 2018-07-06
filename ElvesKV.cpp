@@ -6,6 +6,19 @@
 
 using namespace std;
 
+typedef struct WiscKey{
+    string dir;
+    leveldb::DB * leveldb;
+    FILE * logfile;
+}WK;
+
+// wisckey 写操作封装
+static void wisckeySet(WK* wk, string &key, string &value){
+    long offset = ftell(wk->logfile);
+    long size = sizeof(value);
+
+}
+
 // leveldb 读操作封装
 static bool leveldbGet(leveldb::DB * db, string &key, string &value){
     leveldb::Status s = db->Get(leveldb::ReadOptions(),key,&value);
@@ -44,6 +57,7 @@ static void testingLevelDBFunction(leveldb::DB * db, string key, string value){
     leveldbDel(db,key);
     assert(leveldbGet(db,key,get_value)==0);
 }
+
 // 生成字符串的长度
 static size_t randValueSize(){
     return (size_t)rand()/100000 + 5000;
@@ -75,9 +89,14 @@ int main(){
     // string get_value;
     // testingLevelDBFunction(db,key,value);
     // cout << "time elapsed: " << levelDbTest() * 1.0e-6 << " seconds" << endl;
-    clock_t t0 = clock();
-    levelDbTest();
-    clock_t dt = clock() - t0;
-    cout << "time elapsed: " << dt * 1.0e-6 << " seconds" << endl;
+    // clock_t t0 = clock();
+    // levelDbTest();
+    // clock_t dt = clock() - t0;
+    // cout << "time elapsed: " << dt * 1.0e-6 << " seconds" << endl;
+    string a = "123456";
+    string b = "123";
+    stringstream test1;
+    test1<<b<<"&&"<<a;
+    cout<<test1.str();
     return 0;
 }
