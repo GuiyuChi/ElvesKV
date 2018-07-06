@@ -81,11 +81,11 @@ static bool wisckeyGet(WK * wk, string &key, string &value){
 static void wisckeySet(WK* wk, string &key, string &value){
     long offset = ftell(wk->logfile);
     //修改了源码
-    long size = value.length();
+    long size = sizeof(value);
     string vlog_offset = to_string(offset);
     string vlog_size = to_string(size);
-    // cout<<vlog_offset<<endl;
-    // cout<<vlog_size<<endl;
+    cout<<vlog_offset<<endl;
+    cout<<vlog_size<<endl;
     string vlog_value = vlog_offset+"&&"+vlog_size;
     fwrite(&value,sizeof(value),1,wk->logfile);
     leveldbSet(wk->leveldb,key,vlog_value);
@@ -140,15 +140,22 @@ int main(){
     		exit(1);
   	}
     string key1 = "adf";
-    string value1 = "hello wisc";
+    string value1 = randString();
     string key2 = "abcd";
-    string value2 = "wodsfdsfadfasfrfrafgfdfawereffeawfdsfef";
+    string value2 = randString();
     string key3 = "adfafsf";
-    string value3 = "dfsasdfgasadgewrgfdvrgfbgd";
+    string value3 = randString();
     wisckeySet(wk,key1,value1);
     wisckeySet(wk,key2,value2);
     wisckeySet(wk,key3,value3);
-    wisckeyGet(wk,key3,value1);
-    cout<<value1<<endl;
+    string a1;
+    string a2;
+    string a3;
+    wisckeyGet(wk,key1,a1);
+    wisckeyGet(wk,key2,a2);
+    wisckeyGet(wk,key3,a3);
+    // cout<<a1<<endl;
+    // cout<<a2<<endl;
+    cout<<a3<<endl;
     return 0;
 }
