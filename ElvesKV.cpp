@@ -59,7 +59,7 @@ static bool wisckeyGet(WK * wk, string &key, string &value)
     string offsetinfo;
     const bool found = leveldbGet(wk->leveldb, key, offsetinfo);
     if (found) {
-        cout << "Offset and Length: " << offsetinfo << endl;
+        // cout << "Offset and Length: " << offsetinfo << endl;
     }
     else {
         cout << "Record:Not Found" << endl;
@@ -78,8 +78,8 @@ static bool wisckeyGet(WK * wk, string &key, string &value)
 	}
 	value_length = s;
 
-	cout << "Value Offset: " << value_offset << endl;
-	cout << "Value Length: " << value_length << endl;
+	// cout << "Value Offset: " << value_offset << endl;
+	// cout << "Value Length: " << value_length << endl;
 
   	std::string::size_type sz;
   	long offset = stol (value_offset,&sz);
@@ -97,8 +97,6 @@ static bool wisckeyGet(WK * wk, string &key, string &value)
     for(int i=0;i<length;i++){
         cout<<value_record[i];
     }
-    // cout<<value_record[0]<<" "<<value_record[1];
-	// cout << "LogFile Value: " << value_record << endl;
 	return true;
 }
 // wisckey 写操作封装
@@ -138,7 +136,8 @@ static void testingWiscKeyFunction(WK * wk, string key, string value){
 }
 // 生成字符串的长度
 static size_t randValueSize(){
-    return (size_t)rand()/100000 + 5000;
+    // return (size_t)rand()%100+50;
+    return 5;
 }
 // 生成随机字符串
 static string randString(){
@@ -154,7 +153,7 @@ static string randString(){
 static void levelDbTest(){
     leveldb::DB * db = open_leveldb("/tmp/testdb");
     // string value = "hello world elveskv";
-    for(int i=0;i<1000;i++){
+    for(int i=0;i<100;i++){
         string key = to_string((size_t)rand());
         string value = randString();
         testingLevelDBFunction(db,key,value);
@@ -167,11 +166,16 @@ static void wiscKeyTest(){
            exit(1);
        }
     // string value = "hello world elveskv";
-    for(int i=0;i<1000;i++){
+    for(int i=0;i<100;i++){
         string key = to_string((size_t)rand());
         string value = randString();
         testingWiscKeyFunction(wk,key,value);
     }
+    string key = "A";
+    string value = "hello world elveskv";
+    string key1 = "B";
+    wisckeySet(wk,key,value);
+    cout<<wisckeyGet(wk,key,value)<<endl;
 }
 int main(){
     // leveldb::DB * db = open_leveldb("/tmp/testdb");
@@ -180,28 +184,12 @@ int main(){
     // string get_value;
     // testingLevelDBFunction(db,key,value);
     // cout << "time elapsed: " << levelDbTest() * 1.0e-6 << " seconds" << endl;
-    // clock_t t0 = clock();
-    // levelDbTest();
-    // clock_t dt = clock() - t0;
-    // cout << "time elapsed: " << dt * 1.0e-6 << " seconds" << endl;
-    WK * wk = open_wisckey("/tmp/wisckey_test_dir");
-    if (wk == NULL) {
-    		cerr << "Open WiscKey failed!" << endl;
-    		exit(1);
-  	}
-    string key ="a";
-    string value = randString();
-    string key1 ="c";
-    string value1 = "fsgfdfagds";
-    string key2 ="d";
-    string value2 = randString();
-    wisckeySet(wk,key,value);
-    wisckeySet(wk,key1,value1);
-    wisckeySet(wk,key2,value2);
-    wisckeyGet(wk,key1,value);
-    // testingWiscKeyFunction(wk,key,value);
-    // clock_t t1 = clock();
-    // wiscKeyTest();
-    // cout << "time elapsed: " << (clock() - t1) * 1.0e-6 << " seconds" << endl;
+    clock_t t0 = clock();
+    levelDbTest();
+    cout << "levelDb time elapsed: " << (clock() - t0) * 1.0e-6 << " seconds" << endl;
+    // wisckeySet(wk,key2,value2);
+    clock_t t1 = clock();
+    wiscKeyTest();
+    cout << "wiscKey time elapsed: " << (clock() - t1) * 1.0e-6 << " seconds" << endl;
     return 0;
 }
