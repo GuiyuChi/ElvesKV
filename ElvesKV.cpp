@@ -78,34 +78,39 @@ static bool wisckeyGet(WK * wk, string &key, string &value)
 	}
 	value_length = s;
 
-	// cout << "Value Offset: " << value_offset << endl;
-	// cout << "Value Length: " << value_length << endl;
+	cout << "Value Offset: " << value_offset << endl;
+	cout << "Value Length: " << value_length << endl;
 
   	std::string::size_type sz;
   	long offset = stol (value_offset,&sz);
 	long length = stol (value_length,&sz);
 
 	//cout << offset << length << endl;
-	string value_record;
+	char value_record[length];
 	//cout << ftell(wk->logread) << endl;
 	fseek(wk->logfile,offset,SEEK_SET);
 	//cout << ftell(wk->logfile) << endl;
 	//rewind(wk->logfile);
 	//cout << ftell(wk->logfile) << endl;
-	fread(&value_record,length,1,wk->logfile);
+	fread(value_record,length,1,wk->logfile);
 	//rewind(wk->logfile);
-	cout << "LogFile Value: " << value_record << endl;
+    for(int i=0;i<length;i++){
+        cout<<value_record[i];
+    }
+    // cout<<value_record[0]<<" "<<value_record[1];
+	// cout << "LogFile Value: " << value_record << endl;
 	return true;
 }
 // wisckey 写操作封装
 static void wisckeySet(WK * wk, string &key, string &value)
 {
 	long offset = ftell (wk->logfile);
-	long size = sizeof(value);
+	long size = value.length();
 	string vlog_offset = to_string(offset);
 	string vlog_size = to_string(size);
 	string vlog_value = vlog_offset + "&&" + vlog_size;
-	fwrite (&value, sizeof(value),1,wk->logfile);
+    const char* char_value = value.data();
+	fwrite (char_value, sizeof(char),size,wk->logfile);
 	leveldbSet(wk->leveldb,key,vlog_value);
 }
 // WiscKey 创建数据库
@@ -186,7 +191,15 @@ int main(){
   	}
     string key ="a";
     string value = randString();
-    testingWiscKeyFunction(wk,key,value);
+    string key1 ="c";
+    string value1 = "fsgfdfagds";
+    string key2 ="d";
+    string value2 = randString();
+    wisckeySet(wk,key,value);
+    wisckeySet(wk,key1,value1);
+    wisckeySet(wk,key2,value2);
+    wisckeyGet(wk,key1,value);
+    // testingWiscKeyFunction(wk,key,value);
     // clock_t t1 = clock();
     // wiscKeyTest();
     // cout << "time elapsed: " << (clock() - t1) * 1.0e-6 << " seconds" << endl;
